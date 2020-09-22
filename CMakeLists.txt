@@ -15,6 +15,9 @@ if(CMAKE_COMPILER_IS_GNUCXX OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
     set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 endif()
 
+# find installed eigen library
+find_package(Eigen3 REQUIRED)
+include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
 
 # current source and include:
 include_directories(${PROJECT_SOURCE_DIR}/include)
@@ -71,6 +74,6 @@ include_directories(${orocos_kdl_INCLUDE_DIRS})
 # include_directories(${KDL_Parser_INCLUDE_DIRS})
 
 add_executable(spline src/spline.cpp)
-target_link_libraries(spline ${orocos_kdl_LIBRARIES})
+target_link_libraries(spline ${orocos_kdl_LIBRARIES} ${Eigen3})
 # target_link_libraries(trajectory ${RST-RT_LIBRARIES} ${RTT-CORE-EXTENSIONS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES} urdf ${PORT})
 
