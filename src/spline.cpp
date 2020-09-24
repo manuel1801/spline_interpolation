@@ -21,6 +21,67 @@ using namespace std;
 int main()
 {
 
+    // testing:
+    int _p = 3;
+    double _U[11] = {0, 0, 0, 0, 1.0, 2.0, 4.0, 7.0, 7.0, 7.0, 7.0};
+    int n_of_u = sizeof(_U)/sizeof(_U[0]);
+    double _U_[n_of_u - 6];
+    int _n = n_of_u - 6;
+
+    for (uint i = 0; i < _n; i++)
+        _U_[i] = _U[i+3];
+
+
+
+    double _u = 0;
+    // u ∈ [u 4 , u 5 ),
+    int _i = 4;
+    int _k = 10;
+    // and the nonvanishing basis functions are
+    // B_1 = 0.0313, B_2 = 0.5885, B_3 = 0.3733, B_3 = 0.0069.
+
+ //   int span = WhichSpan(_u, _U, _k, _p);
+  //  cout << "span: " << span << endl;
+
+//    double _B[4];
+//    // BasisFuns(span, _U[4], _p, _U, _B); // wrong
+//    BasisFuns(span, _u, _p, _U, _B);
+
+//    for (uint i = 0; i < 4; i++)
+//        cout << _B[i] << " ";
+
+//    cout << endl;
+
+//    return 0;
+
+    for(uint i = 0; i < _n; i++){
+
+
+        // at the endpoint previous span intervall will be used again by setting u − eps for u == u_max
+
+        int span = WhichSpan(_U_[i], _U, _k, _p);
+        cout << "span: " << span << endl;
+
+
+        double _B[4];
+        // BasisFuns(span, _U[4], _p, _U, _B); // wrong
+        BasisFuns(span, _U_[i], _p, _U, _B);
+
+        for (uint i = 0; i < 4; i++)
+            cout << _B[i] << " ";
+
+        cout << endl;
+    }
+
+
+    return 0;
+
+
+
+
+
+
+
     int p = 3, dim = 3;
     double U[16] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
     int n_knot = sizeof(U)/sizeof(U[0]) - 1;
@@ -687,8 +748,14 @@ Output: mid
 - index of the knot span including u
 */
 {
+
     int high, low, mid;
     high = n_knot - p;
+
+    if (u == U[high])// TODO check if correct (p. 470 in Trajectory_Planning_for_Automatic_Machines_and_Robots.pdf)
+        u -= 0.0000000000001;
+
+
     low = p;
     if (u == U[high])
         mid = high;
