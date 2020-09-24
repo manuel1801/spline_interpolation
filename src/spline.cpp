@@ -6,53 +6,20 @@
 #include <kdl/path_roundedcomposite.hpp>
 #include <kdl/trajectory_segment.hpp>
 #include <Eigen/Dense>
+#include <fstream>
 
 #define ROBOT_DOF_SIZE 7
 #define MAX_P 4
 
 void BasisFuns(int i, double u, int p, double U[], double B[]);
-void BasisFunEigen(int i, double u, int p, double U[], Eigen::VectorXf &stdB);
 int WhichSpan(double u, double U[], int n_knot, int p);
-void BSplinePoint( double u, double U[], int n_knot, int p, double P[],int d, double s[]);
-void solve_eigen(Eigen::VectorXf a, Eigen::VectorXf b, Eigen::VectorXf c, Eigen::VectorXf d, int n);
+void BSplinePoint( double u, double U[], int n_knot, int p, std::vector<Eigen::Vector3f> P,int d, double s[]);
+
 void solve(double* a, double* b, double* c, double* d, int n);
 
 using namespace std;
 int main()
 {
-
-    // testing:
-    int _p = 3;
-    double _U[11] = {0, 0, 0, 0, 1.0, 2.0, 4.0, 7.0, 7.0, 7.0, 7.0};
-    int n_of_u = sizeof(_U)/sizeof(_U[0]);
-    double _U_[n_of_u - 6];
-    int _n = n_of_u - 6;
-
-    for (uint i = 0; i < _n; i++)
-        _U_[i] = _U[i+3];
-
-
-
-    double _u = 0;
-    // u ∈ [u 4 , u 5 ),
-    int _i = 4;
-    int _k = 10;
-    // and the nonvanishing basis functions are
-    // B_1 = 0.0313, B_2 = 0.5885, B_3 = 0.3733, B_3 = 0.0069.
-
- //   int span = WhichSpan(_u, _U, _k, _p);
-  //  cout << "span: " << span << endl;
-
-//    double _B[4];
-//    // BasisFuns(span, _U[4], _p, _U, _B); // wrong
-//    BasisFuns(span, _u, _p, _U, _B);
-
-//    for (uint i = 0; i < 4; i++)
-//        cout << _B[i] << " ";
-
-//    cout << endl;
-
-//    return 0;
 
     for(uint i = 0; i < _n; i++){
 
@@ -73,30 +40,11 @@ int main()
         cout << endl;
     }
 
-
     return 0;
 
+    }
 
-
-
-
-
-
-    int p = 3, dim = 3;
-    double U[16] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
-    int n_knot = sizeof(U)/sizeof(U[0]) - 1;
-    cout << "n_knot " << n_knot << endl;
-
-
-//    double P[16*3] = {83, 34, -168, 146, -182, -45, 207, 31, -89, -29, 32, 71,
-//                      -5, 128, -41, 177, 88, 21, 14, -172, 30, 90,-54, -32,
-//                      119, 120,
-//                      88, 252, 245, 68, 98, 83, 121, 218, 188, 192};
-
-    //waypoints q
-//    double q[10*d] =    {83, -64 ,42 ,-98, -13 ,140, 43, -65 ,-45, 71,
-//                      -54 ,10 ,79 ,23 ,125 ,81 ,32 ,-17 ,-89, 90,
-//                     119 ,124 ,226 ,222 ,102 ,92 ,92 ,134 ,182 ,192};
+    int p = 3, dim = 3; // p:polynomal degree, dim:cart space dimension
 
     // cartesian trajectory in x,y,z
     std::vector<Eigen::Vector3f> q;
@@ -112,7 +60,31 @@ int main()
     q.push_back(Eigen::Vector3f(71, 90 , 192));
 
     int n = q.size()-1; // to use as index for q
+    int n_knot = n + 6;
     cout << "n " << n << endl;
+
+
+    // knot vector u
+    double U[n_knot] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
+    // int nr_of_u = sizeof(_U)/sizeof(_U[0]);
+
+    double _U[n]; // remove first and last 3 values from knot vector u
+    for (uint i = 0; i < n; i++)
+        _U[i] = U[i+3];
+
+
+
+//    double P[16*3] = {83, 34, -168, 146, -182, -45, 207, 31, -89, -29, 32, 71,
+//                      -5, 128, -41, 177, 88, 21, 14, -172, 30, 90,-54, -32,
+//                      119, 120,
+//                      88, 252, 245, 68, 98, 83, 121, 218, 188, 192};
+
+    //waypoints q
+//    double q[10*d] =    {83, -64 ,42 ,-98, -13 ,140, 43, -65 ,-45, 71,
+//                      -54 ,10 ,79 ,23 ,125 ,81 ,32 ,-17 ,-89, 90,
+//                     119 ,124 ,226 ,222 ,102 ,92 ,92 ,134 ,182 ,192};
+
+
 
     // derivatives at the endpoints
     Eigen::Vector3f t_0 = Eigen::Vector3f(-1236, 538, 42);
@@ -125,79 +97,44 @@ int main()
     //Eigen::Vector3f p_1 = q.at(0) + ((U[4]/3.0)*t_0);
     P.push_back(q.at(0) + ((U[4]/3.0)*t_0));
 
-    // oder mit u -> which span i
-
+    // vectors a, b, c, d for tridiagonal matrix PB = R
     double a[n-1], b[n-1], c[n-1], d_x[n-1], d_y[n-1], d_z[n-1];
     std::vector<Eigen::Vector3f> d;
 
-
     a[0] = 0;
     c[n-2] = 0;
-    for (int i = 0; i < n-1; i++){ //1..n-1
+    for (int i = 1; i <= n-1; i++){
 
         // Eigen::VectorXf B_a(4);
         double B[MAX_P];
 
-
-        int intervall = WhichSpan(U[i+1], U, n_knot, p);
-        BasisFuns(intervall, U[i+1], p, U, B); //a
+        int intervall = WhichSpan(_U[i], U, n_knot, p);
+        BasisFuns(intervall, _U[i], p, U, B); //a
 
         cout << "intervall " << intervall << ", B1: " << B[0]<< ", B2: " << B[1]<< ", B3: " << B[2]<< ", B4: " << B[3] << endl;
 
+        if (i > 1)
+            a[i-1] = B[0];
 
-        // for a: j == i
-        // for b: j == i+1
-        // for c: j == i + 2
+        b[i-1] = B[1];
 
-        if (i > 0)
-            a[i] = B[1];
-
-
-        b[i] = B[0];
-
-        if (i < (n-1))
+        if (i <= n-1)
             c[i-1] = B[2];
 
 
-        // std::cout << "B_3 " << B[3] << endl;
-
-
-//        for(uint j = 0; j< (sizeof(B)/sizeof(B[0])); j++)
-//        {
-
-
-
-
-
-//            a.push_back();
-
-//            // fill a, b, c, d
-
-//        }
-//            cout << B[j] << endl;
-
-//        cout << endl;
-
-           // d:
-
         if (i == 1){
 
-            d_x[i-1] = (q.at(1) - B[1]* P.at(1))(0);
-            d_y[i-1] = (q.at(1) - B[1]* P.at(1))(1);
-            d_z[i-1] = (q.at(1) - B[1]* P.at(1))(2);
-
-           // d.push_back(q.at(1) - B[0]* P.at(1));
+            d_x[i-1] = (q.at(1) - B[0]* P.at(1))(0);
+            d_y[i-1] = (q.at(1) - B[0]* P.at(1))(1);
+            d_z[i-1] = (q.at(1) - B[0]* P.at(1))(2);
 
         }
         else if (i == n-1){
 
-            d_x[i-1] = (q.at(i) - B[1] * (q.at(n) - ((1.0-U[n+3])/3.0)*t_n))(0);
+            d_x[i-1] = (q.at(i) - B[2] * (q.at(n) - ((1.0-U[n+2])/3.0)*t_n))(0); // TODO double check [n+2]
+            d_y[i-1] = (q.at(i) - B[2] * (q.at(n) - ((1.0-U[n+2])/3.0)*t_n))(1);
+            d_z[i-1] = (q.at(i) - B[2] * (q.at(n) - ((1.0-U[n+2])/3.0)*t_n))(2);
 
-            d_y[i-1] = (q.at(i) - B[1] * (q.at(n) - ((1.0-U[n+3])/3.0)*t_n))(1);
-
-            d_z[i-1] = (q.at(i) - B[1] * (q.at(n) - ((1.0-U[n+3])/3.0)*t_n))(2);
-
-           // d.push_back(q.at(i) - B[1] * (q.at(n) - ((1.0-U[n+3])/3.0)*t_n)); // q_n-1 - B_n+1 * p_n+1
         }
 
         else if (i < n-1){
@@ -205,118 +142,16 @@ int main()
             d_x[i-1] = (q.at(i))(0);
             d_y[i-1] = (q.at(i))(1);
             d_z[i-1] = (q.at(i))(2);
-
-          //  d.push_back(q.at(i));
-
         }
 
 
-
-
-
-
-        // now take from all B's the B with indce i+1 for the case of a
-        // somit scalar wert -> nur std::vector<double > verwenden
-//        a_mat.push_back(B_a);
-//        Eigen::VectorXf B_b(4);
-//        BasisFunEigen(i, U[i-1], p, U, B_b); //b
-
-//        b_mat.push_back(B_b);
-
-//        Eigen::VectorXf B_c(4);
-
-//        if (i < (n-1)){
-//            BasisFunEigen(i+1, U[i-1], p, U, B_c); //c
-//            c_mat.push_back(B_c);
-//        }
-
-//        Eigen::VectorXf R(4);
-
-//        if (i-1 == 1){
-//            //R[1] = q[1] - B_1(u_1)p_1
-
-//        }
-//        else if ((i-1) > 1 && (i-1) < (n+1)){
-
-//            //R[i-1] <<  q[i-1]
-
-//        }else if ((i-1) == (n+1)){
-//            //R[n-1] = B_1(u_-1)pn_+1
-//        }
-
-//        d_mat.push_back(B_d);
-
-    }
-
-
-    cout << "a: "  <<endl;
-
-    for (uint i = 0; i < n-1; i++)
-        cout << a[i] << ", ";
-
-    cout << endl;
-    cout << "b: " <<endl;
-
-
-    for (uint i = 0; i < n-1; i++)
-        cout << b[i] << ", ";
-    cout << endl;
-    cout << "c: " <<endl;
-
-
-    for (uint i = 0; i < n-1; i++)
-        cout << c[i] << ", ";
-
-    cout << endl;
- //   cout << "d: " <<endl;
-
-//    for (uint i = 0; i < d.size(); i++)
-//        cout << d.at(i).transpose() << endl;
-//    cout << endl;
-
-
-    cout << "d_x: " <<endl;
-    for (uint i = 0; i < n-1; i++)
-        cout << d_x[i] << ", ";
-
-    cout << endl;
-
-    cout << "d_y: " <<endl;
-    for (uint i = 0; i < n-1; i++)
-        cout << d_y[i] << ", ";
-
-    cout << endl;
-
-    cout << "d_z: " <<endl;
-    for (uint i = 0; i < n-1; i++)
-        cout << d_z[i] << ", ";
-
-
-    // now calculate Pn [n=2..n] with tridiagonal alg
-
-
     solve(a,b,c,d_x,n-1);
-//    solve(a,b,c,d_y,n-1);
-//    solve(a,b,c,d_z,n-1);
+    solve(a,b,c,d_y,n-1);
+    solve(a,b,c,d_z,n-1);
 
-            for (int i = 0; i < n-1; i++) {
-                cout << "[TEST] " <<  d_x[i] << endl;
-            }
-
-
-    // testing the tridiag alg.
-//    int  n_ = 4;
-//    double a_[4] = {0, -1, -1, -1 };
-//    double b_[4] = { 4,  4,  4,  4 };
-//    double c_[4] = {-1, -1, -1 ,0};
-//    double d_[4] = { 5,  5, 10, 23 };
-//    // results    { 2,  3,  5, 7  }
-
-//    solve(a_,b_,c_,d_,n_);
-//        for (int i = 0; i < n_; i++) {
-//            cout << "[TEST] " <<  d_[i] << endl;
-//        }
-
+    for (int i = 0; i < n-1; i++) {
+        cout << "[TEST] " <<  d_x[i] << endl;
+     }
 
 
     for (uint i = 0; i < n-1; i++){
@@ -324,197 +159,20 @@ int main()
     }
 
     // add only after P_2 ... P_n were added
-    P.push_back(q.at(n) - ((1.0-U[n+3])/3.0)*t_n);
+    P.push_back(q.at(n) - ((1.0-U[n+2])/3.0)*t_n); // TODO double check [n+2]
     P.push_back(q.at(n));
     //Eigen::Vector3f p_1 = q.at(0) + ((U[4]/3.0)*t_0);
 
 
-
-
-
-
-    cout << "FINAL RESULT OF P" << endl;
-    for (auto item : P)
-        cout << item.transpose() << endl;
-
-
-      cout << endl;
-
-
-
-    // derivitives of q at the endpoints
-//    double t_0[3] = {-1236, 538, 42};
-//    double  t_9[3] = {732, 1130, 63};
-
-    // generate controll points:
-    // p0
-//    idx = 0;
-//    double P[12*3];
-//    for (uint i = 0; i < d; i++){
-//        P[i*(n+2+1)+idx] = q[i*(n+1)+idx];
-//        cout << P[i*(n+2+1)+idx] << ", ";
-//    }
-
-//    cout << endl;
-
-//    // p1:
-//    idx = 1;
-//    for (uint i = 0; i < d; i++){
-//        P[i*(n+2+1)+idx] = q[i*(n+1)+0]+(U[4]/3.0)*t_0[i];
-//        cout << P[i*(n+2+1)+idx] << ", ";
-//    }
-//    cout << endl;
-
-//    // p n+2:
-//    idx = n+2;
-//    for (uint i = 0; i < d; i++){
-//        P[i*(n+2+1)+(n+2)] = q[i*(n+1)+n];
-//        cout << P[i*(n+2+1)+(n+2)] << ", ";
-//    }
-//    cout << endl;
-
-
-//    // p n+1:
-//    idx = n+1;
-//    idx = n+2;
-//    for (uint i = 0; i < d; i++){
-//        P[i*(n+2+1)+(n+1)] = q[i*(n+1)+n] - ((1-U[n+3])/3.0)*t_9[i];
-//        cout << P[i*(n+2+1)+(n+1)] << ", ";
-//    }
-//    cout << endl;
-
-//    std::vector<Eigen::VectorXf> a_mat, b_mat, c_mat, d_mat;
-//    Eigen::VectorXf B_a(4), B_b(4),B_c(4),R(4);
-
-//    for (int i = 2; i <= n; i++){
-//        Eigen::VectorXf B_a(4);
-//        if (i < n){
-//            BasisFunEigen(i, U[i], p, U, B_a); //a
-//            a_mat.push_back(B_a);
-//        }
-//        Eigen::VectorXf B_b(4);
-//        BasisFunEigen(i, U[i-1], p, U, B_b); //b
-
-//        b_mat.push_back(B_b);
-
-//        Eigen::VectorXf B_c(4);
-
-//        if (i < (n-1)){
-//            BasisFunEigen(i+1, U[i-1], p, U, B_c); //c
-//            c_mat.push_back(B_c);
-//        }
-
-//        Eigen::VectorXf R(4);
-
-//        if (i-1 == 1){
-//            //R[1] = q[1] - B_1(u_1)p_1
-
-//        }
-//        else if ((i-1) > 1 && (i-1) < (n+1)){
-
-//            //R[i-1] <<  q[i-1]
-
-//        }else if ((i-1) == (n+1)){
-//            //R[n-1] = B_1(u_-1)pn_+1
-//        }
-
-//        d_mat.push_back(R);
-
-
-//    }
-
-
-    // oder mit u -> which span i
-
-//    for (int i = 1; i < n; i++){ //1..n-1
-//        Eigen::VectorXf B_a(4);
-//        int i = WhichSpan(U[i], U, n_knot, p);
-//        BasisFunEigen(i, U[i], p, U, B_a); //a
-//        // now take from all B's the B with indce i+1 for the case of a
-//        // somit scalar wert -> nur std::vector<double > verwenden
-//        a_mat.push_back(B_a);
-//        Eigen::VectorXf B_b(4);
-//        BasisFunEigen(i, U[i-1], p, U, B_b); //b
-
-//        b_mat.push_back(B_b);
-
-//        Eigen::VectorXf B_c(4);
-
-//        if (i < (n-1)){
-//            BasisFunEigen(i+1, U[i-1], p, U, B_c); //c
-//            c_mat.push_back(B_c);
-//        }
-
-//        Eigen::VectorXf R(4);
-
-//        if (i-1 == 1){
-//            //R[1] = q[1] - B_1(u_1)p_1
-
-//        }
-//        else if ((i-1) > 1 && (i-1) < (n+1)){
-
-//            //R[i-1] <<  q[i-1]
-
-//        }else if ((i-1) == (n+1)){
-//            //R[n-1] = B_1(u_-1)pn_+1
-//        }
-
-//        d_mat.push_back(B_d);
-
-
-//    }
-
-
- //    solve_eigen(a_mat,b_mat,c_mat,d_mat, n); // n ?
-
-//    cout << "a" << endl;
-
-
-//    for (uint i = 0; i < a_mat.size(); i++)
-//        cout << a_mat.at(i).transpose()<< endl;
-//    cout << "b" << endl;
-
-
-//    for (uint i = 0; i < b_mat.size(); i++)
-//        cout << b_mat.at(i).transpose() << endl;
-//    cout << "c" << endl;
-
-
-//    for (uint i = 0; i < c_mat.size(); i++)
-//        cout << c_mat.at(i).transpose()<< endl;
-
-    // then the remaining with tridiagonal matrix
-    // a: for i = 2..n   -> B_i(u_i-1)
-    // b: for i = 2..n-1 -> B_i(u_i)
-    // c: for i = 3..n   -> B_i(u_i-2)
-    // d: for r
-
-    // P = calcMatrix(a,b,c,d)
-
-    // then
-    // BSplinePoint(u, U, n_knot, p, P, d, s)
-
-return 0;
-
-
-//    int n_knot = sizeof(U)/sizeof(U[0]) - 1;
-
-
-//    for (double u = 0; u <=1; u+=0.01)
-
-//    {
-
-//        double s[p];
-//        BSplinePoint(u, U, n_knot, p, P, d, s);
-
-//        //for (uint i = 0; i < p; i++)
-//       //      cout << s[2] <<  ", " ;
-//        //cout << endl;
-
-//    }
-
-
-
+    for (double u = 0; u <=1; u+=0.01)
+    {
+        double s[p];
+        BSplinePoint(u, U, n_knot, p, P, dim, s);
+        //for (uint i = 0; i < p; i++)
+             cout << s[2] <<  ", " ;
+        cout << endl;
+
+    }
     return 0;
 }
 
@@ -522,39 +180,6 @@ return 0;
 void solve(double* a, double* b, double* c, double* d, int n) {
 
     // n is the number of unknowns
-/*
-    |b0 c0 0 ||x0| |d0|
-    |a1 b1 c1||x1|=|d1|
-    |0  a2 b2||x2| |d2|
-
-    1st iteration: b0x0 + c0x1 = d0 -> x0 + (c0/b0)x1 = d0/b0 ->
-
-        x0 + g0x1 = r0               where g0 = c0/b0        , r0 = d0/b0
-
-    2nd iteration:     | a1x0 + b1x1   + c1x2 = d1
-        from 1st it.: -| a1x0 + a1g0x1        = a1r0
-                    -----------------------------
-                          (b1 - a1g0)x1 + c1x2 = d1 - a1r0
-
-        x1 + g1x2 = r1               where g1=c1/(b1 - a1g0) , r1 = (d1 - a1r0)/(b1 - a1g0)
-
-    3rd iteration:      | a2x1 + b2x2   = d2
-        from 2nd it. : -| a2x1 + a2g1x2 = a2r2
-                       -----------------------
-                       (b2 - a2g1)x2 = d2 - a2r2
-        x2 = r2                      where                     r2 = (d2 - a2r2)/(b2 - a2g1)
-    Finally we have a triangular matrix:
-    |1  g0 0 ||x0| |r0|
-    |0  1  g1||x1|=|r1|
-    |0  0  1 ||x2| |r2|
-
-    Condition: ||bi|| > ||ai|| + ||ci||
-
-    in this version the c matrix reused instead of g
-    and             the d matrix reused instead of r and x matrices to report results
-    Written by Keivan Moradi, 2014
-    */
-
     double c_tmp[n];
     for (uint i = 0; i < n; i++)
         c_tmp[i] = c[i];
@@ -578,63 +203,9 @@ void solve(double* a, double* b, double* c, double* d, int n) {
 }
 
 
-void solve_eigen(Eigen::VectorXf a, Eigen::VectorXf b, Eigen::VectorXf c, Eigen::VectorXf d, int n) {
-    /*
-    // n is the number of unknowns
-
-    |b0 c0 0 ||x0| |d0|
-    |a1 b1 c1||x1|=|d1|
-    |0  a2 b2||x2| |d2|
-
-    1st iteration: b0x0 + c0x1 = d0 -> x0 + (c0/b0)x1 = d0/b0 ->
-
-        x0 + g0x1 = r0               where g0 = c0/b0        , r0 = d0/b0
-
-    2nd iteration:     | a1x0 + b1x1   + c1x2 = d1
-        from 1st it.: -| a1x0 + a1g0x1        = a1r0
-                    -----------------------------
-                          (b1 - a1g0)x1 + c1x2 = d1 - a1r0
-
-        x1 + g1x2 = r1               where g1=c1/(b1 - a1g0) , r1 = (d1 - a1r0)/(b1 - a1g0)
-
-    3rd iteration:      | a2x1 + b2x2   = d2
-        from 2nd it. : -| a2x1 + a2g1x2 = a2r2
-                       -----------------------
-                       (b2 - a2g1)x2 = d2 - a2r2
-        x2 = r2                      where                     r2 = (d2 - a2r2)/(b2 - a2g1)
-    Finally we have a triangular matrix:
-    |1  g0 0 ||x0| |r0|
-    |0  1  g1||x1|=|r1|
-    |0  0  1 ||x2| |r2|
-
-    Condition: ||bi|| > ||ai|| + ||ci||
-
-    in this version the c matrix reused instead of g
-    and             the d matrix reused instead of r and x matrices to report results
-    Written by Keivan Moradi, 2014
-    */
-    n--; // since we start from x0 (not x1)
-
-    for (uint j = 0; j < 4; j++)
-    c[0] /= b[0];
-    d[0] /= b[0];
-
-    for (int i = 1; i < n; i++) {
-        c[i] /= b[i] - a[i]*c[i-1];
-        d[i] = (d[i] - a[i]*d[i-1]) / (b[i] - a[i]*c[i-1]);
-    }
-
-    d[n] = (d[n] - a[n]*d[n-1]) / (b[n] - a[n]*c[n-1]);
-
-    for (int i = n; i-- > 0;) {
-        d[i] -= c[i]*d[i+1];
-    }
-}
-
-
 
 void BSplinePoint( double u, double U[], int n_knot, int p,
-double P[],int d, double s[])
+std::vector<Eigen::Vector3f> P,int d, double s[])
 /*
 Inputs:u
 - value of the independent variable
@@ -660,7 +231,8 @@ Output:s[]
         s[k] = 0;
         for (j = 0; j <= p; j++)
         {
-            s[k] = s[k] + P[k * (n_knot - p) + i - p + j] * B[j];
+            // s[k] = s[k] + P[k * (n_knot - p) + i - p + j] * B[j];
+            s[k] = s[k] + P.at(i-p+j)(k) * B[j];
         }
     }
 }
@@ -697,39 +269,6 @@ B[] - value of the nonvanishing basis function at u
             acc = DL[j - r] * temp;
         }
         B[j] = acc;
-    }
-}
-
-void BasisFunEigen(int i, double u, int p, double U[], Eigen::VectorXf &B)
-/*
-Input:
-i
-- knot span including u
-u
-- value of the independent variable
-p
-- degree of the spline
-U[] - Knot vector
-Output:
-B[] - value of the nonvanishing basis function at u
-*/
-{
-    int j, r;
-    double temp, acc;
-    double DR[MAX_P], DL[MAX_P];
-    B(0) = 1;
-    for (j = 1; j <= p; j++)
-    {
-        DL[j] = u - U[i + 1 - j];
-        DR[j] = U[i + j] - u;
-        acc = 0.0;
-        for (r = 0; r <= j - 1; r++)
-        {
-            temp = B[r] / (DR[r + 1] + DL[j - r]);
-            B(r) = acc + DR[r + 1] * temp;
-            acc = DL[j - r] * temp;
-        }
-        B(j) = acc;
     }
 }
 
