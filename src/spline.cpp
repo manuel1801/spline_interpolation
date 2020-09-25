@@ -9,12 +9,11 @@
 #include <fstream>
 
 #define ROBOT_DOF_SIZE 7
-#define MAX_P 4
 
 void BasisFuns(int i, double u, int p, double U[], double B[]);
 int WhichSpan(double u, double U[], int n_knot, int p);
 void BSplinePoint(double u, double U[], int n_knot, int p, std::vector<Eigen::Vector3f> P, int d, double s[]);
-void solve(double *a, double *b, double *c, double *d, int n);
+void solveMatrix(double *a, double *b, double *c, double *d, int n);
 
 using namespace std;
 
@@ -36,51 +35,58 @@ int main()
     q.push_back(Eigen::Vector3f(71.0, 90.0, 192.0));
 
     int n = q.size() - 1; // to use as index for q
-    int n_knot = n + 6;
-    cout << "n " << n << endl;
+    int n_knot = n + 6; // as index for knot vector
+
+
+
+    // set fist and last for values of knot vector u
+    double u_knots[n_knot+1] = {0, 0, 0, 0};
+    for (uint i =0; i < 4; i++)
+        u_knots[n_knot-i] = 1.0;
+
+    double d;
+    for (uint i = 1; i < q.size(); i++)
+        d +=(q.at(i) - q.at(i-1)).norm();
+
+    for (uint k = 1; k < n; k++)
+        u_knots[k+3] = u_knots[k+2] + ((q.at(k) - q.at(k-1)).norm())/d;
+
+    cout << "knot vector u" << endl;
+
+    for (uint k = 0; k <= n_knot; k++)
+        cout << u_knots[k] << ", ";
 
     // knot vector u
-    double U[n_knot] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
-    // int nr_of_u = sizeof(_U)/sizeof(_U[0]);
-
-    double _U[n]; // remove first and last 3 values from knot vector u
-                  //    for (uint i = 0; i < n; i++)
-                  //        _U[i] = U[i+3];
+    // double u_knots[n_knot] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
 
     //    double P[16*3] = {83, 34, -168, 146, -182, -45, 207, 31, -89, -29, 32, 71,
     //                      -5, 128, -41, 177, 88, 21, 14, -172, 30, 90,
     //                 -54, -32, 119, 120,88, 252, 245, 68, 98, 83, 121, 218, 188, 192};
 
-    //controll points from example
+    //  controll points from example
     //    {83.0,  34.0,   -168.0,   146.0, -182.0, -45.0,  207.0, 31.0, -89.0, -29.0,  32.0, 71.0,
     //    -54.0, -32.0,  -5.0,      128.0, -41.0,  177.0,  88.0,  21.0,  14.0, -172.0, 30.0,  90.0,
     //    ,119.0, 120.0, 88.0,      252.0, 245.0,  68.0,   98.0,  83.0,  121.0, 218.0, 188.0, 192.0};
 
-    std::vector<Eigen::Vector3f> __P;
-    __P.push_back(Eigen::Vector3f(83.0, -54.0, 119.0));
-    __P.push_back(Eigen::Vector3f(34.0, -32.0, 120.0));
-    __P.push_back(Eigen::Vector3f(-168.0, -5.0, 88.0));
-    __P.push_back(Eigen::Vector3f(146.0, 128.0, 252.0));
-    __P.push_back(Eigen::Vector3f(-182.0, - 41.0, 245.0));
-    __P.push_back(Eigen::Vector3f(-45.0, 177.0, 68.0));
-    __P.push_back(Eigen::Vector3f(207.0, 88.0, 98.0));
-    __P.push_back(Eigen::Vector3f(31.0, 21.0, 83.0));
-    __P.push_back(Eigen::Vector3f(-89.0, 14.0, 121.0));
-    __P.push_back(Eigen::Vector3f(-29.0, -172.0, 218.0));
-    __P.push_back(Eigen::Vector3f(32.0, 30.0, 188.0));
-    __P.push_back(Eigen::Vector3f(71.0, 90.0, 192.0));
+//    std::vector<Eigen::Vector3f> _P;
+//    _P.push_back(Eigen::Vector3f(83.0, -54.0, 119.0));
+//    _P.push_back(Eigen::Vector3f(34.0, -32.0, 120.0));
+//    _P.push_back(Eigen::Vector3f(-168.0, -5.0, 88.0));
+//    _P.push_back(Eigen::Vector3f(146.0, 128.0, 252.0));
+//    _P.push_back(Eigen::Vector3f(-182.0, - 41.0, 245.0));
+//    _P.push_back(Eigen::Vector3f(-45.0, 177.0, 68.0));
+//    _P.push_back(Eigen::Vector3f(207.0, 88.0, 98.0));
+//    _P.push_back(Eigen::Vector3f(31.0, 21.0, 83.0));
+//    _P.push_back(Eigen::Vector3f(-89.0, 14.0, 121.0));
+//    _P.push_back(Eigen::Vector3f(-29.0, -172.0, 218.0));
+//    _P.push_back(Eigen::Vector3f(32.0, 30.0, 188.0));
+//    _P.push_back(Eigen::Vector3f(71.0, 90.0, 192.0));
 
     //waypoints q
     //    double q[10*d] =    {83, -64 ,42 ,-98, -13 ,140, 43, -65 ,-45, 71,
     //                      -54 ,10 ,79 ,23 ,125 ,81 ,32 ,-17 ,-89, 90,
     //                     119 ,124 ,226 ,222 ,102 ,92 ,92 ,134 ,182 ,192};
 
-    double __s[p];
-    BSplinePoint(1.0, U, n_knot, p, __P, dim, __s);
-    // vec.push_back(Eigen::Vector3f(s[0], s[1], s[2]));
-    cout << "[point at u=1] " << __s[0] << " " << __s[1] << " " << __s[2] << endl;
-
-    // return 0;
 
     // derivatives at the endpoints
     Eigen::Vector3f t_0 = Eigen::Vector3f(-1236, 538, 42);
@@ -90,140 +96,95 @@ int main()
     std::vector<Eigen::Vector3f> P;
 
     P.push_back(q.at(0));
-    P.push_back(q.at(0) + ((U[4] / 3.0) * t_0));
+    P.push_back(q.at(0) + ((u_knots[4] / 3.0) * t_0));
 
     // vectors a, b, c, d for tridiagonal matrix PB = R
     double a[n - 1], b[n - 1], c[n - 1], d_x[n - 1], d_y[n - 1], d_z[n - 1];
-    std::vector<Eigen::Vector3f> d;
 
     a[0] = 0;
     c[n - 2] = 0;
     for (int i = 1; i <= n - 1; i++)
     {
 
-        double B[MAX_P];
-        int intervall = WhichSpan(U[i + 3], U, n_knot, p);
-        BasisFuns(intervall, U[i + 3], p, U, B); //a
+        double B[p+1];
+        // int intervall = WhichSpan(u_knots[i + 3], u_knots, n_knot, p);
+        // BasisFuns(intervall, u_knots[i + 3], p, u_knots, B); //a
                                                  //        int intervall = WhichSpan(_U[i], U, n_knot, p);
                                                  //        BasisFuns(intervall, _U[i], p, U, B); //a
 
-        cout << "intervall " << intervall << ", B1: " << B[0] << ", B2: " << B[1] << ", B3: " << B[2] << ", B4: " << B[3] << endl;
+        BasisFuns(WhichSpan(u_knots[i + 3], u_knots, n_knot, p), u_knots[i + 3], p, u_knots, B); //a
 
+        // a;
         if (i > 1)
             a[i - 1] = B[0];
 
+       // b:
         b[i - 1] = B[1];
 
+        // c:
         if (i <= n - 1)
             c[i - 1] = B[2];
 
+        // d:
         if (i == 1)
         {
-
             d_x[i - 1] = (q.at(1) - B[0] * P.at(1))(0);
             d_y[i - 1] = (q.at(1) - B[0] * P.at(1))(1);
             d_z[i - 1] = (q.at(1) - B[0] * P.at(1))(2);
         }
         else if (i == n - 1)
         {
-
-            d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - U[n + 2]) / 3.0) * t_n))(0); // TODO double check [n+2]
-            d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - U[n + 2]) / 3.0) * t_n))(1);
-            d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - U[n + 2]) / 3.0) * t_n))(2);
+            d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(0); // TODO double check [n+2]
+            d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(1);
+            d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(2);
         }
-
         else if (i < n - 1)
         {
-
             d_x[i - 1] = (q.at(i))(0);
             d_y[i - 1] = (q.at(i))(1);
             d_z[i - 1] = (q.at(i))(2);
         }
     }
 
-    // solve PB = R for P with tridiagonal matrix algorthm
-    solve(a, b, c, d_x, n - 1);
-    solve(a, b, c, d_y, n - 1);
-    solve(a, b, c, d_z, n - 1);
+    // solve PB = R for P with tridiagonal matrix algorthm, res in d
+    solveMatrix(a, b, c, d_x, n - 1);
+    solveMatrix(a, b, c, d_y, n - 1);
+    solveMatrix(a, b, c, d_z, n - 1);
 
     for (uint i = 0; i < n - 1; i++)
     {
         P.push_back(Eigen::Vector3f(d_x[i], d_y[i], d_z[i]));
     }
 
-    P.push_back(q.at(n) - ((1.0 - U[n + 2]) / 3.0) * t_n); // TODO check if [n+2] correct
+    P.push_back(q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n); // TODO check if [n+2] correct
     P.push_back(q.at(n));
 
     for (auto p : P)
         cout << p(0) << " " << p(1) << " " << p(2) << endl;
 
-    //    std::vector<Eigen::Vector3f> vec;
+    // std::vector<Eigen::Vector3f> vec;
     std::ofstream file;
     file.open("/home/manuel/hrg/spline_interpolation/output/spline.txt");
-
-    // output only last point
-    // double s[p];
-    // BSplinePoint(1.0, U, n_knot, p, P, dim, s);
-    // vec.push_back(Eigen::Vector3f(s[0], s[1], s[2]));
-    // cout << "[last point own spline: ]" << s[0] << " " << s[1] << " " << s[2] << endl;
-
-    for (double u = 0; u <= 1.0; u += 0.01)
+    for (double k = 0; k <= 1.0; k += 0.01)
     {
         double s[p];
-        // cout << "[loop] u=" << u_it /*<< " " <<s[0] << " " << s[1] << " " << s[2] */<< endl;
-       BSplinePoint(u, U, n_knot, p, P, dim, s);
-       cout << "[loop] u=" << u << " " <<s[0] << " " << s[1] << " " << s[2] << endl<< endl;
+       BSplinePoint(k, u_knots, n_knot, p, P, dim, s);
+       cout << "Spline Points at u: " << k << " x=" <<s[0] << " y=" << s[1] << " Z=" << s[2] << endl;
        file << s[0] << " " << s[1] << " " << s[2] << endl;
-
         // vec.push_back(Eigen::Vector3f(s[0], s[1], s[2]));
     }
 
     double s[p];
-    BSplinePoint(1.0, U, n_knot, p, P, dim, s);
-    cout << "u=1"<<s[0] << " " << s[1] << " " << s[2] << endl<< endl;
+    BSplinePoint(1.0, u_knots, n_knot, p, P, dim, s);
+    cout << "Spline Points at u: " << 1.0 << " x=" <<s[0] << " y=" << s[1] << " Z=" << s[2] << endl<< endl;
     file << s[0] << " " << s[1] << " " << s[2] << endl;
-
-
-    // cout << "uit " << u_it << endl;
-
-//    if (u_it == 1.0){
-
-//        cout << "is 1" << endl<< endl;
-
-//        u_it+=0.01;
-//        double s[p];
-//        BSplinePoint(u_it, U, n_knot, p, P, dim, s);
-
-//        cout << "u=" << u_it << " " <<s[0] << " " << s[1] << " " << s[2] << endl<< endl;
-//    }
-
     file.close();
-
-    //    for (uint i = 0; i < vec.size(); i++)
-    //        cout << vec.at(i)(0) << ", " << vec.at(i)(1) << ", " <<vec.at(i)(2) << endl;
-
     return 0;
 }
 
-//bool write(double){
-//    std::ofstream file;
-//        file.open("/home/manuel/hrg/spline_interpolation/output/spline.txt", std::ofstream::out | std::ofstream::app);
-//        for (int i = 0; i < final_list_joint.size(); ++i)
-//        {
-//                q_tmp = final_list_joint.at(i);
-//                p_tmp = final_list_cart.at(i);
-//                if (ROB_DOF_SIZE == 7){
-//                    file << q_tmp(0) << " " << q_tmp(1) << " " << q_tmp(2) << " " << q_tmp(3) << " " << q_tmp(4) << " " << q_tmp(5) << " " << q_tmp(6) << " ";
-//                }else{
-//                    file << q_tmp(0) << " " << q_tmp(1) << " " << q_tmp(2) << " " << q_tmp(3) << " " << q_tmp(4) << " " << q_tmp(5) << " ";
-//                }
-//                file << p_tmp(0) << " " << p_tmp(1) << " " << p_tmp(2) << " " << p_tmp(3) << " " << p_tmp(4) << " " << p_tmp(5) << std::endl;
-//        }
 
-//        file.close();
-//}
 
-void solve(double *a, double *b, double *c, double *d, int n)
+void solveMatrix(double *a, double *b, double *c, double *d, int n)
 {
 
     // n is the number of unknowns
@@ -269,7 +230,7 @@ Output:s[]
 - value of the B-spline at uthe
 */
 {
-    double B[MAX_P];
+    double B[p+1];
     int i, k, j;
     i = WhichSpan(u, U, n_knot, p);
     BasisFuns(i, u, p, U, B);
@@ -300,7 +261,7 @@ B[] - value of the nonvanishing basis function at u
 {
     int j, r;
     double temp, acc;
-    double DR[MAX_P], DL[MAX_P];
+    double DR[p+1], DL[p+1];
     B[0] = 1;
     for (j = 1; j <= p; j++)
     {
