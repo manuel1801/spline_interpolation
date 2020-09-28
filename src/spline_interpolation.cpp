@@ -273,65 +273,65 @@ int main()
 
 
     Eigen::VectorXf traj_point;
+
     traj_point.resize(6);
-    traj_point << 83.0, -54.0, 119.0, 0, 0, 0;
+    traj_point << 83, -54, 119, 0, 0, 0;
     q.push_back(traj_point);
 
+    traj_point.resize(6);
+    traj_point << -64.0, 10.0, 124.0, 0, 0, 0;
+    q.push_back(traj_point);
 
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
     traj_point << 42.0, 79.0, 226.0, 0, 0, 0;
     q.push_back(traj_point);
 
-
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
     traj_point << -98.0, 23.0, 222.0, 0, 0, 0;
     q.push_back(traj_point);
 
-
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
     traj_point << -13.0, 125.0, 102.0, 0, 0, 0;
     q.push_back(traj_point);
 
-
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
     traj_point << 140.0, 81.0, 92.0, 0, 0, 0;
     q.push_back(traj_point);
 
-
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
     traj_point << 43.0, 32.0, 92.0, 0, 0, 0;
     q.push_back(traj_point);
 
-
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
     traj_point << -65.0, -17.0, 143.0, 0, 0, 0;
     q.push_back(traj_point);
 
-
-
-
-
-    Eigen::VectorXf traj_point;
     traj_point.resize(6);
-    traj_point << 83.0, -54.0, 119.0, 0, 0, 0;
+    traj_point << -45.0, -89.0, 182.0, 0, 0, 0;
     q.push_back(traj_point);
-    q.push_back(Eigen::VectorXf(-64.0, 10.0, 124.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(42.0, 79.0, 226.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(-98.0, 23.0, 222.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(-13.0, 125.0, 102.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(140.0, 81.0, 92.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(43.0, 32.0, 92.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(-65.0, -17.0, 143.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(-45.0, -89.0, 182.0, 0, 0, 0));
-    q.push_back(Eigen::VectorXf(71.0, 90.0, 192.0, 0, 0, 0));
 
-    Eigen::VectorXf t_0 = Eigen::VectorXf(-1236, 538, 42, 0, 0, 0);
+    traj_point.resize(6);
+    traj_point << 71.0, 90.0, 192.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+//    q.push_back(Eigen::VectorXf(83, -54, 119, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(-64.0, 10.0, 124.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(42.0, 79.0, 226.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(-98.0, 23.0, 222.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(-13.0, 125.0, 102.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(140.0, 81.0, 92.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(43.0, 32.0, 92.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(-65.0, -17.0, 143.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(-45.0, -89.0, 182.0, 0, 0, 0));
+//    q.push_back(Eigen::VectorXf(71.0, 90.0, 192.0, 0, 0, 0));
+
+
+    traj_point.resize(6);
+    traj_point << 71.0, 90.0, 192.0, 0, 0, 0;
+
+    Eigen::VectorXf t_0;
+    t_0.resize(6);
+    = Eigen::VectorXf(-1236, 538, 42, 0, 0, 0);
     Eigen::VectorXf t_n = Eigen::VectorXf(732, 1130, 63, 0, 0, 0);
 
 
