@@ -32,7 +32,7 @@ private:
 
     int p, dim, n, n_knot;          // p:polynomal degree, dim:cart space dimension
     // Eigen::Vector3f t_0, t_n;       // can be removed
-    std::vector<Eigen::Vector3f> P; // controll points
+    std::vector<Eigen::VectorXf> P; // controll points
     // extern double u_knot[n_knot];
     std::vector<double> u_knots;
 };

@@ -17,9 +17,10 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
     }
 
     p = 3.0;   // polynomal degree
-    dim = 3.0; // dimension of cartesian space
+    dim = 6.0; // dimension of cartesian space
     n = q.size() - 1;
     n_knot = n + 6; // as index for knot vector
+
 
 
     // 1. create knot vector u
@@ -47,7 +48,7 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
 
     //calculate p_2 .. p_n-3
     // vectors a, b, c, d for tridiagonal matrix PB = R
-    double a[n - 1], b[n - 1], c[n - 1], d_x[n - 1], d_y[n - 1], d_z[n - 1];
+    double a[n - 1], b[n - 1], c[n - 1], d_x[n - 1], d_y[n - 1], d_z[n - 1], d_or[n - 1], d_op[n - 1], d_oy[n - 1];
 
     a[0] = 0;
     c[n - 2] = 0;
@@ -76,18 +77,27 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
             d_x[i - 1] = (q.at(1) - B[0] * P.at(1))(0);
             d_y[i - 1] = (q.at(1) - B[0] * P.at(1))(1);
             d_z[i - 1] = (q.at(1) - B[0] * P.at(1))(2);
+            d_or[i - 1] = (q.at(1) - B[0] * P.at(1))(3);
+            d_op[i - 1] = (q.at(1) - B[0] * P.at(1))(4);
+            d_oy[i - 1] = (q.at(1) - B[0] * P.at(1))(5);
         }
         else if (i == n - 1)
         {
             d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(0); // [n+2] ?
             d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(1);
             d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(2);
+            d_or[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(3); // [n+2] ?
+            d_op[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(4);
+            d_oy[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(5);
         }
         else if (i < n - 1)
         {
             d_x[i - 1] = (q.at(i))(0);
             d_y[i - 1] = (q.at(i))(1);
             d_z[i - 1] = (q.at(i))(2);
+            d_or[i - 1] = (q.at(i))(3);
+            d_op[i - 1] = (q.at(i))(4);
+            d_oy[i - 1] = (q.at(i))(5);
         }
     }
 
@@ -95,10 +105,17 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
     solveMatrix(a, b, c, d_x, n - 1);
     solveMatrix(a, b, c, d_y, n - 1);
     solveMatrix(a, b, c, d_z, n - 1);
+    solveMatrix(a, b, c, d_or, n - 1);
+    solveMatrix(a, b, c, d_op, n - 1);
+    solveMatrix(a, b, c, d_oy, n - 1);
 
     for (uint i = 0; i < n - 1; i++)
     {
-        P.push_back(Eigen::Vector3f(d_x[i], d_y[i], d_z[i]));
+        Eigen::VectorXf _tmp;
+        _tmp.resize(6);
+        _tmp << d_x[i], d_y[i], d_z[i], d_or[i], d_op[i], d_oy[i];
+        //P.push_back(Eigen::VectorXf(d_x[i], d_y[i], d_z[i]));
+        P.push_back(_tmp);
     }
 
     // add last two pints
@@ -252,22 +269,70 @@ int main()
 {
 
     SplineInterpolation splInterp;
-
     std::vector<Eigen::VectorXf> q;
-    q.push_back(Eigen::Vector3f(83.0, -54.0, 119.0));
-    q.push_back(Eigen::Vector3f(-64.0, 10.0, 124.0));
-    q.push_back(Eigen::Vector3f(42.0, 79.0, 226.0));
-    q.push_back(Eigen::Vector3f(-98.0, 23.0, 222.0));
-    q.push_back(Eigen::Vector3f(-13.0, 125.0, 102.0));
-    q.push_back(Eigen::Vector3f(140.0, 81.0, 92.0));
-    q.push_back(Eigen::Vector3f(43.0, 32.0, 92.0));
-    q.push_back(Eigen::Vector3f(-65.0, -17.0, 143.0));
-    q.push_back(Eigen::Vector3f(-45.0, -89.0, 182.0));
-    q.push_back(Eigen::Vector3f(71.0, 90.0, 192.0));
 
-    Eigen::VectorXf t_0 = Eigen::Vector3f(-1236, 538, 42);
-    Eigen::VectorXf t_n = Eigen::Vector3f(732, 1130, 63);
 
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << 83.0, -54.0, 119.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << 42.0, 79.0, 226.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << -98.0, 23.0, 222.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << -13.0, 125.0, 102.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << 140.0, 81.0, 92.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << 43.0, 32.0, 92.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << -65.0, -17.0, 143.0, 0, 0, 0;
+    q.push_back(traj_point);
+
+
+
+
+
+    Eigen::VectorXf traj_point;
+    traj_point.resize(6);
+    traj_point << 83.0, -54.0, 119.0, 0, 0, 0;
+    q.push_back(traj_point);
+    q.push_back(Eigen::VectorXf(-64.0, 10.0, 124.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(42.0, 79.0, 226.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(-98.0, 23.0, 222.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(-13.0, 125.0, 102.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(140.0, 81.0, 92.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(43.0, 32.0, 92.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(-65.0, -17.0, 143.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(-45.0, -89.0, 182.0, 0, 0, 0));
+    q.push_back(Eigen::VectorXf(71.0, 90.0, 192.0, 0, 0, 0));
+
+    Eigen::VectorXf t_0 = Eigen::VectorXf(-1236, 538, 42, 0, 0, 0);
+    Eigen::VectorXf t_n = Eigen::VectorXf(732, 1130, 63, 0, 0, 0);
 
 
     splInterp.generate_cubic_b_spline(q, t_0, t_n);
@@ -277,13 +342,13 @@ int main()
     file.open("/home/manuel/hrg/spline_interpolation/output/spline.txt");
     for (double k = 0; k <= 1.0; k += 0.01)
     {
-        p_out.setZero(3);
+        p_out.setZero(6);
         splInterp.get_waypoint_at(k, p_out);
         cout << "k. " << k << endl;
         file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
 
      }
-    p_out.setZero(3);
+    p_out.setZero(6);
     splInterp.get_waypoint_at(1.0, p_out);
     file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
 
