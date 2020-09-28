@@ -279,10 +279,10 @@ int main()
     {
         p_out.setZero(3);
         splInterp.get_waypoint_at(k, p_out);
-        cout << "k. " << k << endl;
+       // cout << "k. " << k << endl;
         file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
+    }
 
-     }
     p_out.setZero(3);
     splInterp.get_waypoint_at(1.0, p_out);
     file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
