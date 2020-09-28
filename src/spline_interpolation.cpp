@@ -295,23 +295,23 @@ int main()
     q.push_back(traj_point);
 
     traj_point.resize(6);
-    traj_point << 140.0, 81.0, 92.0, 0, 0, 0;
+    traj_point << 140.0, 81.0, 92.0, 1, 0, 0;
     q.push_back(traj_point);
 
     traj_point.resize(6);
-    traj_point << 43.0, 32.0, 92.0, 0, 0, 0;
+    traj_point << 43.0, 32.0, 92.0, 1, 0, 0;
     q.push_back(traj_point);
 
     traj_point.resize(6);
-    traj_point << -65.0, -17.0, 143.0, 0, 0, 0;
+    traj_point << -65.0, -17.0, 143.0, 1, 0, 0;
     q.push_back(traj_point);
 
     traj_point.resize(6);
-    traj_point << -45.0, -89.0, 182.0, 0, 0, 0;
+    traj_point << -45.0, -89.0, 182.0, 1, 0, 0;
     q.push_back(traj_point);
 
     traj_point.resize(6);
-    traj_point << 71.0, 90.0, 192.0, 0, 0, 0;
+    traj_point << 71.0, 90.0, 192.0, 1, 1, 0;
     q.push_back(traj_point);
 
 //    q.push_back(Eigen::VectorXf(83, -54, 119, 0, 0, 0));
@@ -326,14 +326,16 @@ int main()
 //    q.push_back(Eigen::VectorXf(71.0, 90.0, 192.0, 0, 0, 0));
 
 
-    traj_point.resize(6);
-    traj_point << 71.0, 90.0, 192.0, 0, 0, 0;
+
 
     Eigen::VectorXf t_0;
     t_0.resize(6);
-    = Eigen::VectorXf(-1236, 538, 42, 0, 0, 0);
-    Eigen::VectorXf t_n = Eigen::VectorXf(732, 1130, 63, 0, 0, 0);
+    t_0 << -1236, 538, 42, 0, 0, 0;
 
+
+    Eigen::VectorXf t_n;
+    t_n.resize(6);
+    t_n << 732, 1130, 63, 0, 0, 0;
 
     splInterp.generate_cubic_b_spline(q, t_0, t_n);
 
@@ -344,15 +346,15 @@ int main()
     {
         p_out.setZero(6);
         splInterp.get_waypoint_at(k, p_out);
-        cout << "k. " << k << endl;
-        file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
+        // cout << "k. " << k << endl;
+        cout <<p_out(0) << " " << p_out(1) << " " << p_out(2) <<" " << p_out(3) << " " << p_out(4) << " " << p_out(5) << endl;
+        file <<p_out(0) << " " << p_out(1) << " " << p_out(2) <<" " << p_out(3) << " " << p_out(4) << " " << p_out(5) << endl;
 
      }
     p_out.setZero(6);
     splInterp.get_waypoint_at(1.0, p_out);
-    file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
-
-
+    cout <<p_out(0) << " " << p_out(1) << " " << p_out(2) <<" " << p_out(3) << " " << p_out(4) << " " << p_out(5) << endl;
+    file <<p_out(0) << " " << p_out(1) << " " << p_out(2) <<" " << p_out(3) << " " << p_out(4) << " " << p_out(5) << endl;
 
     // knot vector u
     // double u_knots[n_knot] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
