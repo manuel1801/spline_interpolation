@@ -10,29 +10,21 @@ SplineInterpolation::~SplineInterpolation()
 {
 }
 
-// Public Fuctions
-bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::Vector3f> q, Eigen::Vector3f v_start, Eigen::Vector3f v_end) // TODO make vstart vend as optional arguments and calculate as described in book
+bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q, Eigen::VectorXf v_start, Eigen::VectorXf v_end)
 {
-
-    // here make a check if enough points werer given (like > 4)
+    if (q.size() < 4){
+        cout << "not enough points given!" << endl;
+    }
 
     p = 3.0;   // polynomal degree
     dim = 3.0; // dimension of cartesian space
     n = q.size() - 1;
     n_knot = n + 6; // as index for knot vector
 
-    // if given, otherwise calculate, (remove t_0 t_n)
-    t_0 = v_start;
-    t_n = v_end;
 
-    // 1. create knot vector u //TODO change from array to vector to make it global
-    // double u_knots[n_knot + 1] = {0, 0, 0, 0};
-
+    // 1. create knot vector u
     for (uint i = 0; i < 4; i++)
         u_knots.push_back(0);
-
-    // for (uint i = 0; i < 4; i++)
-    //     u_knots[n_knot - i] = 1.0;
 
     double d;
     for (uint i = 1; i < q.size(); i++)
@@ -40,21 +32,18 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::Vector3f> q
 
     for (uint k = 1; k < n; k++)
         u_knots.push_back(u_knots[k + 2] + ((q.at(k) - q.at(k - 1)).norm()) / d);
-    // u_knots[k + 3] = u_knots[k + 2] + ((q.at(k) - q.at(k - 1)).norm()) / d;
-
-    cout << "knot vector u" << endl;
 
     for (uint i = 0; i < 4; i++)
         u_knots.push_back(1.0);
 
-    for (uint k = 0; k < u_knots.size(); k++)
-        cout << u_knots[k] << ", ";
+//    for (uint k = 0; k < u_knots.size(); k++)
+//        cout << u_knots[k] << ", ";
 
     // 2. create controll points p
 
     // add first two pints
     P.push_back(q.at(0));
-    P.push_back(q.at(0) + ((u_knots[4] / 3.0) * t_0));
+    P.push_back(q.at(0) + ((u_knots[4] / 3.0) * v_start));
 
     //calculate p_2 .. p_n-3
     // vectors a, b, c, d for tridiagonal matrix PB = R
@@ -63,17 +52,13 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::Vector3f> q
     a[0] = 0;
     c[n - 2] = 0;
 
+    // get Basis Function for u_1 ... u_n-1
     for (int i = 1; i <= n - 1; i++)
     {
-
         double B[p + 1];
-        // int intervall = WhichSpan(u_knots[i + 3], u_knots, n_knot, p);
-        // BasisFuns(intervall, u_knots[i + 3], p, u_knots, B); //a
-        //        int intervall = WhichSpan(_U[i], U, n_knot, p);
-        //        BasisFuns(intervall, _U[i], p, U, B); //a
+        BasisFuns(WhichSpan(u_knots[i + 3], u_knots, n_knot, p), u_knots[i + 3], p, u_knots, B);
 
-        BasisFuns(WhichSpan(u_knots[i + 3], u_knots, n_knot, p), u_knots[i + 3], p, u_knots, B); //a
-
+        // Fill in vectors for tridiagonal matrix of basis functions
         // a;
         if (i > 1)
             a[i - 1] = B[0];
@@ -94,9 +79,9 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::Vector3f> q
         }
         else if (i == n - 1)
         {
-            d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(0); // TODO double check [n+2]
-            d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(1);
-            d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(2);
+            d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(0); // [n+2] ?
+            d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(1);
+            d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(2);
         }
         else if (i < n - 1)
         {
@@ -117,66 +102,21 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::Vector3f> q
     }
 
     // add last two pints
-
-    P.push_back(q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n); // TODO check if [n+2] correct
+    P.push_back(q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end); // TODO check if [n+2] correct
     P.push_back(q.at(n));
+
     // for (auto p : P)
     //     cout << p(0) << " " << p(1) << " " << p(2) << endl;
 }
 
-//bool SplineInterpolation::get_waypoint_at(double u, std::vector<Eigen::Vector3f> &p)
-//{
 
-//    cout << u_knots[4] << endl;
 
-//    // here make a check if control points were created
-//    // 3. evaluate spline for given u (using BSplinePoint())
-//    //TODO: translate into t (time)
-
-//    // for (auto p : P)
-//    //     cout << p(0) << " " << p(1) << " " << p(2) << endl;
-
-//    // std::vector<Eigen::Vector3f> vec;
-//    std::ofstream file;
-//    file.open("/home/manuel/hrg/spline_interpolation/output/spline.txt");
-//    for (double k = 0; k <= 1.0; k += 0.01)
-//    {
-//        double s[p];
-//        BSplinePoint(k, u_knots, n_knot, p, P, dim, s);
-//        cout << "Spline Points at u: " << k << " x=" << s[0] << " y=" << s[1] << " Z=" << s[2] << endl;
-//        file << s[0] << " " << s[1] << " " << s[2] << endl;
-//        // vec.push_back(Eigen::Vector3f(s[0], s[1], s[2]));
-//    }
-
-//    double s[p];
-//    BSplinePoint(1.0, u_knots, n_knot, p, P, dim, s);
-//    cout << "Spline Points at u: " << 1.0 << " x=" << s[0] << " y=" << s[1] << " Z=" << s[2] << endl
-//         << endl;
-//    file << s[0] << " " << s[1] << " " << s[2] << endl;
-//    file.close();
-//    return 0;
-//}
-
-bool SplineInterpolation::get_waypoint_at_new(double u, Eigen::Vector3f &s)
-
-// TODO use only get_waypoint function with args only u
-// and use of glob other vars
-/*
-Inputs:u
-- value of the independent variable
-U[]
-- Knot vector
-n_knot - length of U[] -1
-p
-- degree of the spline
-P[]
-- Control point vector
-d
-- dimensions of a control point (2 in 2D, 3 in 3D, etc.)
-Output:s[]
-- value of the B-spline at uthe
-*/
+bool SplineInterpolation::get_waypoint_at(double u, Eigen::VectorXf &s)
 {
+    if (P.size() < 4){
+        cout << "not enough controll points given" << endl;
+    }
+
     double B[p + 1];
     int i, k, j;
     i = WhichSpan(u, u_knots, n_knot, p);
@@ -193,7 +133,8 @@ Output:s[]
     return 0;
 }
 
-// internal private Fuctions
+
+
 void SplineInterpolation::solveMatrix(double *a, double *b, double *c, double *d, int n)
 {
 
@@ -222,71 +163,7 @@ void SplineInterpolation::solveMatrix(double *a, double *b, double *c, double *d
     }
 }
 
-//void SplineInterpolation::BSplinePoint(double u, double U[], int n_knot, int p,
-//                                       std::vector<Eigen::Vector3f> P, int d, double s[])
-///*
-//Inputs:u
-//- value of the independent variable
-//U[]
-//- Knot vector
-//n_knot - length of U[] -1
-//p
-//- degree of the spline
-//P[]
-//- Control point vector
-//d
-//- dimensions of a control point (2 in 2D, 3 in 3D, etc.)
-//Output:s[]
-//- value of the B-spline at uthe
-//*/
-//{
-//    double B[p + 1];
-//    int i, k, j;
-//    i = WhichSpan(u, U, n_knot, p);
-//    BasisFuns(i, u, p, U, B);
-//    for (k = 0; k < d; k++) /* For each components of the B-spline*/
-//    {
-//        s[k] = 0;
-//        for (j = 0; j <= p; j++)
-//        {
-//            // s[k] = s[k] + P[k * (n_knot - p) + i - p + j] * B[j];
-//            s[k] = s[k] + P.at(i - p + j)(k) * B[j];
-//        }
-//    }
-//}
 
-//void SplineInterpolation::BSplinePoint(double u, double U[], int n_knot, int p,
-//                                       std::vector<Eigen::Vector3f> P, int d, double s[])
-///*
-//Inputs:u
-//- value of the independent variable
-//U[]
-//- Knot vector
-//n_knot - length of U[] -1
-//p
-//- degree of the spline
-//P[]
-//- Control point vector
-//d
-//- dimensions of a control point (2 in 2D, 3 in 3D, etc.)
-//Output:s[]
-//- value of the B-spline at uthe
-//*/
-//{
-//    double B[p + 1];
-//    int i, k, j;
-//    i = WhichSpan(u, U, n_knot, p);
-//    BasisFuns(i, u, p, U, B);
-//    for (k = 0; k < d; k++) /* For each components of the B-spline*/
-//    {
-//        s[k] = 0;
-//        for (j = 0; j <= p; j++)
-//        {
-//            // s[k] = s[k] + P[k * (n_knot - p) + i - p + j] * B[j];
-//            s[k] = s[k] + P.at(i - p + j)(k) * B[j];
-//        }
-//    }
-//}
 
 void SplineInterpolation::BasisFuns(int i, double u, int p, std::vector<double> U, double B[])
 /*
@@ -344,8 +221,8 @@ Output: mid
     int high, low, mid;
     high = n_knot - p;
 
-    if (u == U[high]) // TODO check if correct (p. 470 in Trajectory_Planning_for_Automatic_Machines_and_Robots.pdf)
-        u -= 0.0000000000001;
+    if (u == U[high])
+        u -= 0.0000000000001; // check if correct (p. 470 in Trajectory_Planning_for_Automatic_Machines_and_Robots.pdf)
 
     low = p;
     if (u == U[high])
@@ -376,8 +253,7 @@ int main()
 
     SplineInterpolation splInterp;
 
-    // cartesian trajectory in x,y,z
-    std::vector<Eigen::Vector3f> q;
+    std::vector<Eigen::VectorXf> q;
     q.push_back(Eigen::Vector3f(83.0, -54.0, 119.0));
     q.push_back(Eigen::Vector3f(-64.0, 10.0, 124.0));
     q.push_back(Eigen::Vector3f(42.0, 79.0, 226.0));
@@ -389,16 +265,29 @@ int main()
     q.push_back(Eigen::Vector3f(-45.0, -89.0, 182.0));
     q.push_back(Eigen::Vector3f(71.0, 90.0, 192.0));
 
-    Eigen::Vector3f t_0 = Eigen::Vector3f(-1236, 538, 42);
-    Eigen::Vector3f t_n = Eigen::Vector3f(732, 1130, 63);
+    Eigen::VectorXf t_0 = Eigen::Vector3f(-1236, 538, 42);
+    Eigen::VectorXf t_n = Eigen::Vector3f(732, 1130, 63);
 
-    Eigen::Vector3f p_out;
+
 
     splInterp.generate_cubic_b_spline(q, t_0, t_n);
 
-    splInterp.get_waypoint_at_new(0.5, p_out);
+    Eigen::VectorXf p_out;
+    std::ofstream file;
+    file.open("/home/manuel/hrg/spline_interpolation/output/spline.txt");
+    for (double k = 0; k <= 1.0; k += 0.01)
+    {
+        p_out.setZero(3);
+        splInterp.get_waypoint_at(k, p_out);
+        cout << "k. " << k << endl;
+        file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
 
-    // set fist and last for values of knot vector u
+     }
+    p_out.setZero(3);
+    splInterp.get_waypoint_at(1.0, p_out);
+    file <<p_out(0) << " " << p_out(1) << " " << p_out(2) << endl;
+
+
 
     // knot vector u
     // double u_knots[n_knot] = {0, 0, 0, 0, 0.11, 0.23, 0.35, 0.48, 0.60, 0.68, 0.77, 0.84, 1.0, 1.0, 1.0, 1.0};
@@ -454,3 +343,110 @@ int main()
 //    file.close();
 //    return 0;
 }
+
+
+
+
+
+
+//void SplineInterpolation::BSplinePoint(double u, double U[], int n_knot, int p,
+//                                       std::vector<Eigen::Vector3f> P, int d, double s[])
+//
+//Inputs:u
+//- value of the independent variable
+//U[]
+//- Knot vector
+//n_knot - length of U[] -1
+//p
+//- degree of the spline
+//P[]
+//- Control point vector
+//d
+//- dimensions of a control point (2 in 2D, 3 in 3D, etc.)
+//Output:s[]
+//- value of the B-spline at uthe
+//
+//{
+//    double B[p + 1];
+//    int i, k, j;
+//    i = WhichSpan(u, U, n_knot, p);
+//    BasisFuns(i, u, p, U, B);
+//    for (k = 0; k < d; k++) /* For each components of the B-spline*/
+//    {
+//        s[k] = 0;
+//        for (j = 0; j <= p; j++)
+//        {
+//            // s[k] = s[k] + P[k * (n_knot - p) + i - p + j] * B[j];
+//            s[k] = s[k] + P.at(i - p + j)(k) * B[j];
+//        }
+//    }
+//}
+
+//void SplineInterpolation::BSplinePoint(double u, double U[], int n_knot, int p,
+//                                       std::vector<Eigen::Vector3f> P, int d, double s[])
+//
+//Inputs:u
+//- value of the independent variable
+//U[]
+//- Knot vector
+//n_knot - length of U[] -1
+//p
+//- degree of the spline
+//P[]
+//- Control point vector
+//d
+//- dimensions of a control point (2 in 2D, 3 in 3D, etc.)
+//Output:s[]
+//- value of the B-spline at uthe
+//
+//{
+//    double B[p + 1];
+//    int i, k, j;
+//    i = WhichSpan(u, U, n_knot, p);
+//    BasisFuns(i, u, p, U, B);
+//    for (k = 0; k < d; k++) /* For each components of the B-spline*/
+//    {
+//        s[k] = 0;
+//        for (j = 0; j <= p; j++)
+//        {
+//            // s[k] = s[k] + P[k * (n_knot - p) + i - p + j] * B[j];
+//            s[k] = s[k] + P.at(i - p + j)(k) * B[j];
+//        }
+//    }
+//}
+
+
+
+//bool SplineInterpolation::get_waypoint_at(double u, std::vector<Eigen::Vector3f> &p)
+//{
+
+//    cout << u_knots[4] << endl;
+
+//    // here make a check if control points were created
+//    // 3. evaluate spline for given u (using BSplinePoint())
+//    //TODO: translate into t (time)
+
+//    // for (auto p : P)
+//    //     cout << p(0) << " " << p(1) << " " << p(2) << endl;
+
+//    // std::vector<Eigen::Vector3f> vec;
+//    std::ofstream file;
+//    file.open("/home/manuel/hrg/spline_interpolation/output/spline.txt");
+//    for (double k = 0; k <= 1.0; k += 0.01)
+//    {
+//        double s[p];
+//        BSplinePoint(k, u_knots, n_knot, p, P, dim, s);
+//        cout << "Spline Points at u: " << k << " x=" << s[0] << " y=" << s[1] << " Z=" << s[2] << endl;
+//        file << s[0] << " " << s[1] << " " << s[2] << endl;
+//        // vec.push_back(Eigen::Vector3f(s[0], s[1], s[2]));
+//    }
+
+//    double s[p];
+//    BSplinePoint(1.0, u_knots, n_knot, p, P, dim, s);
+//    cout << "Spline Points at u: " << 1.0 << " x=" << s[0] << " y=" << s[1] << " Z=" << s[2] << endl
+//         << endl;
+//    file << s[0] << " " << s[1] << " " << s[2] << endl;
+//    file.close();
+//    return 0;
+//}
+
