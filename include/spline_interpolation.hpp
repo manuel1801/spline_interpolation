@@ -20,7 +20,7 @@ public:
     SplineInterpolation();
     ~SplineInterpolation();
 
-    bool generate_cubic_b_spline(std::vector<Eigen::VectorXf> q, Eigen::VectorXf t_0, Eigen::VectorXf t_n);
+    bool generate_cubic_b_spline(std::vector<Eigen::VectorXf> q);
     bool get_waypoint_at(double u, Eigen::VectorXf &s);
 
 private:
@@ -31,10 +31,10 @@ private:
     //bool get_waypoint_at(double u, std::vector<Eigen::VectorXf> &);
 
     int p, dim, n, n_knot;          // p:polynomal degree, dim:cart space dimension
-    // Eigen::Vector3f t_0, t_n;       // can be removed
     std::vector<Eigen::VectorXf> P; // controll points
     // extern double u_knot[n_knot];
     std::vector<double> u_knots;
+    Eigen::VectorXf t_0, t_n;
 };
 
 #endif // SPLINEINTERPOLATION_HPP

@@ -10,7 +10,7 @@ SplineInterpolation::~SplineInterpolation()
 {
 }
 
-bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q, Eigen::VectorXf v_start, Eigen::VectorXf v_end)
+bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q)
 {
     if (q.size() < 4){
         cout << "not enough points given!" << endl;
@@ -20,7 +20,6 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
     dim = 6.0; // dimension of cartesian space
     n = q.size() - 1;
     n_knot = n + 6; // as index for knot vector
-
 
 
     // 1. create knot vector u
@@ -40,11 +39,18 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
 //    for (uint k = 0; k < u_knots.size(); k++)
 //        cout << u_knots[k] << ", ";
 
+    // derivatives at the endpoints:
+    t_0 = (q.at(1) - q.at(0))/(u_knots[4] - u_knots[3]);
+    t_n = (q.at(n) - q.at(n-1))/(u_knots[n_knot-3] - u_knots[n_knot-4]);
+
+    cout << t_0.transpose() << ", " << t_n.transpose() << endl;
+
+
     // 2. create controll points p
 
     // add first two pints
     P.push_back(q.at(0));
-    P.push_back(q.at(0) + ((u_knots[4] / 3.0) * v_start));
+    P.push_back(q.at(0) + ((u_knots[4] / 3.0) * t_0));
 
     //calculate p_2 .. p_n-3
     // vectors a, b, c, d for tridiagonal matrix PB = R
@@ -83,12 +89,12 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
         }
         else if (i == n - 1)
         {
-            d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(0); // [n+2] ?
-            d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(1);
-            d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(2);
-            d_or[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(3); // [n+2] ?
-            d_op[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(4);
-            d_oy[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end))(5);
+            d_x[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(0); // [n+2] ?
+            d_y[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(1);
+            d_z[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(2);
+            d_or[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(3); // [n+2] ?
+            d_op[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(4);
+            d_oy[i - 1] = (q.at(i) - B[2] * (q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n))(5);
         }
         else if (i < n - 1)
         {
@@ -119,7 +125,7 @@ bool SplineInterpolation::generate_cubic_b_spline(std::vector<Eigen::VectorXf> q
     }
 
     // add last two pints
-    P.push_back(q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * v_end); // TODO check if [n+2] correct
+    P.push_back(q.at(n) - ((1.0 - u_knots[n + 2]) / 3.0) * t_n); // TODO check if [n+2] correct
     P.push_back(q.at(n));
 
     // for (auto p : P)
@@ -326,18 +332,7 @@ int main()
 //    q.push_back(Eigen::VectorXf(71.0, 90.0, 192.0, 0, 0, 0));
 
 
-
-
-    Eigen::VectorXf t_0;
-    t_0.resize(6);
-    t_0 << -1236, 538, 42, 0, 0, 0;
-
-
-    Eigen::VectorXf t_n;
-    t_n.resize(6);
-    t_n << 732, 1130, 63, 0, 0, 0;
-
-    splInterp.generate_cubic_b_spline(q, t_0, t_n);
+    splInterp.generate_cubic_b_spline(q);
 
     Eigen::VectorXf p_out;
     std::ofstream file;
