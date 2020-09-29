@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 2.8.3)
 # This creates a standard cmake project. You may extend this file with
 # any cmake macro you see fit.
 #
-project(spline)
+project(spline_interpolation)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
     set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
@@ -73,7 +73,7 @@ include_directories(${orocos_kdl_INCLUDE_DIRS})
 # add_subdirectory(urdf-to-kdl)
 # include_directories(${KDL_Parser_INCLUDE_DIRS})
 
-add_executable(spline src/spline.cpp)
-target_link_libraries(spline ${orocos_kdl_LIBRARIES} ${Eigen3})
+add_executable(spline_interpolation src/spline_interpolation.cpp)
+target_link_libraries(spline_interpolation ${orocos_kdl_LIBRARIES} ${Eigen3})
 # target_link_libraries(trajectory ${RST-RT_LIBRARIES} ${RTT-CORE-EXTENSIONS_LIBRARIES} ${orocos_kdl_LIBRARIES} ${kdl_parser_LIBRARIES} urdf ${PORT})
 
